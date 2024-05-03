@@ -5,31 +5,36 @@
  * It should alo work on an Arduino Uno (using the same wiring scheme as for the Nano) or Arduino Leonardo (using the same wiring scheme as for the Pro Micro).
  * The recommended board is the Arduino Pro Micro because the passthrough works without any modificatoins to the Arduino. 
 
+/* This is a fork meant to adapt a D15 ended MPG. This has minor modifications due to the specific wiring of an off the shelf MPG. Please verify your specific MPG wiring
+ * against the below diagram. 
+ *   ________________________________________
+ *  / GND  A-   B-   YIN  4    X10   EP      \
+ * / 5v   A+   B+   XIN  ZIN  X100  5    COM  \
+ * --------------------------------------------
+ *   ______________________
+ *  / 9  10 11 12 13 14 15 \
+ * / 1  2  3  4  5  6  7  8 \
+ * --------------------------
+ * Note: Because of the available pins this is slightly less capable than the Head of this fork. There is no way to control the LED, nor a way to differentiate between No Axis
+ * and the 6th Axis. The X1 multiplier setting is possible with the adjusted logic in this fork by only checking the X10/X100 pins.
+
 *** Pendant to Arduino Pro Micro connections ***
 
-Pro Micro Pendant   Wire colours
-VCC       +5V       red
-GND       0V,       black
-          COM,      orange/black
-          CN,       blue/black
-          LED-      white/black
+Pro Micro D15 Pin
+VCC       1
+GND       8, 9
+D2        2
+D3        3
+D4        4
+D5        12
+D6        5
+D7        13
+D8        7
+A0        15
+A2        14
+A3        6
 
-D2        A         green
-D3        B         white
-D4        X         yellow
-D5        Y         yellow/black
-D6        Z         brown
-D7        4         brown/black
-D8        5         powder (if present)
-D9        6         powder/black (if present)
-D10       LED+      green/black
-A0        STOP      blue
-A1        X1        grey
-A2        X10       grey/black
-A3        X100      orange
-
-NC        /A,       violet
-          /B        violet/black
+Not Used  10/11
 
 *** Arduino Pro Micro to Duet PanelDue connector connections ***
 
@@ -47,29 +52,21 @@ PanelDue DOUT to /Pro Micro RX1/D0.
 
 *** Pendant to Arduino Nano connections ***
 
-Nano    Pendant   Wire colours
-+5V     +5V       red
-GND     0V,       black
-        COM,      orange/black
-        CN,       blue/black
-        LED-      white/black
+Nano    D15
++5V     1
+GND     8, 9
+D2      2
+D3      3
+D4      4
+D5      12
+D6      5
+D7      13
+D8      7
+D11     14
+D12     6
+A0      15
 
-D2      A         green
-D3      B         white
-D4      X         yellow
-D5      Y         yellow/black
-D6      Z         brown
-D7      4         brown/black
-D8      5         powder (if present)
-D9      6         powder/black (if present)
-D10     X1        grey
-D11     X10       grey/black
-D12     X100      orange
-D13     LED+      green/black
-A0      STOP      blue
-
-NC      /A,       violet
-        /B        violet/black
+Not Used  10/11
 
 *** Arduino Nano to Duet PanelDue connector connections ***
 
@@ -98,21 +95,16 @@ const int PinY = 5;
 const int PinZ = 6;
 const int PinAxis4 = 7;
 const int PinAxis5 = 8;
-const int PinAxis6 = 9;
 const int PinStop = A0;
 
 #if defined(__AVR_ATmega32U4__)     // Arduino Micro, Pro Micro or Leonardo
-const int PinTimes1 = A1;
 const int PinTimes10 = A2;
 const int PinTimes100 = A3;
-const int PinLed = 10;
 #endif
 
 #if defined(__AVR_ATmega328P__)     // Arduino Nano or Uno
-const int PinTimes1 = 10;
 const int PinTimes10 = 11;
 const int PinTimes100 = 12;
-const int PinLed = 13;
 #endif
 
 
@@ -127,8 +119,7 @@ const char* const MoveCommands[] =
   "G91 G0 F6000 Y",     // Y axis
   "G91 G0 F600 Z",      // Z axis
   "G91 G0 F6000 U",     // axis 4
-  "G91 G0 F6000 V",     // axis 5
-  "G91 G0 F6000 W"      // axis 6
+  "G91 G0 F6000 V"      // axis 5
 };
 
 #include "RotaryEncoder.h"
@@ -143,8 +134,7 @@ int distanceMultiplier;
 int axis;
 uint32_t whenLastCommandSent = 0;
 
-const int axisPins[] = { PinX, PinY, PinZ, PinAxis4, PinAxis5, PinAxis6 };
-const int feedAmountPins[] = { PinTimes1, PinTimes10, PinTimes100 };
+const int axisPins[] = { PinX, PinY, PinZ, PinAxis4, PinAxis5 };
 
 #if defined(__AVR_ATmega32U4__)     // Arduino Leonardo or Pro Micro
 # define UartSerial   Serial1
@@ -163,12 +153,9 @@ void setup()
   pinMode(PinZ, INPUT_PULLUP);
   pinMode(PinAxis4, INPUT_PULLUP);
   pinMode(PinAxis5, INPUT_PULLUP);
-  pinMode(PinAxis6, INPUT_PULLUP);
-  pinMode(PinTimes1, INPUT_PULLUP);
   pinMode(PinTimes10, INPUT_PULLUP);
   pinMode(PinTimes100, INPUT_PULLUP);
   pinMode(PinStop, INPUT_PULLUP);
-  pinMode(PinLed, OUTPUT);
 
   output.begin(BaudRate);
 
@@ -203,7 +190,6 @@ void loop()
     do
     {
       output.write("M112 ;" "\xF0" "\x0F" "\n");
-      digitalWrite(PinLed, LOW);
       uint16_t now = (uint16_t)millis();
       while (digitalRead(PinStop) == HIGH && (uint16_t)millis() - now < 2000)
       {
@@ -215,19 +201,12 @@ void loop()
     output.write("M999\n");
   }
 
-  digitalWrite(PinLed, HIGH);
-
   // 2. Poll the feed amount switch
-  distanceMultiplier = 0;
-  int localDistanceMultiplier = 1;
-  for (int pin : feedAmountPins)
-  {
-    if (digitalRead(pin) == LOW)
-    {
-      distanceMultiplier = localDistanceMultiplier;
-      break;
-    }
-    localDistanceMultiplier *= 10;
+  distanceMultiplier = 1;
+  if (digitalRead(PinTimes10) == LOW) {
+    distanceMultiplier = 10;
+  } else if (digitalRead(PinTimes100) == LOW) {
+    distanceMultiplier = 100;
   }
 
   // 3. Poll the axis selector switch

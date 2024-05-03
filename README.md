@@ -4,28 +4,43 @@ This is firmware to run on an Arduino Pro Micro (preferred) or Arduino Nano to i
 
 For a full guide to building the pendant, see [the Duet3D wiki here](https://docs.duet3d.com/en/User_manual/Connecting_hardware/IO_CNC_Pendant).
 
+## Fork Notes
+
+This is a fork meant to adapt a D15 ended MPG. This has minor modifications due to the specific wiring of an off the shelf MPG. Please verify your specific MPG wiring
+against the below diagram. 
+```
+     ________________________________________
+    / GND  A-   B-   YIN  4    X10   EP      \
+   / 5v   A+   B+   XIN  ZIN  X100  5    COM  \
+   --------------------------------------------
+     ______________________
+    / 9  10 11 12 13 14 15 \
+   / 1  2  3  4  5  6  7  8 \
+   --------------------------
+```
+
+Because of the available pins this is slightly less capable than the Head of this fork. There is no way to control the LED, nor a way to differenciate between No Axis
+and the 6th Axis. The X1 multiplier setting is possible with the adjusted logic in this fork by only checking the X10/X100 pins.
+
 ## Wiring
 
 Pendant to Arduino Pro Micro wiring:
 
-| Pro Micro | Pendant | Wire colours |
-|:----------|:--------|:-------------|
-| VCC       | +5V     | red          |
-| GND       | 0V<br>COM<br>CN<br>LED- | black<br>orange/black<br>blue/black<br>white/black | 
-| D2        | A       | green        | 
-| D3        | B       | white | 
-| D4        | X       | yellow | 
-| D5        | Y       | yellow/black | 
-| D6        | Z       | brown | 
-| D7        | 4       | brown/black | 
-| D8        | 5       | pink (if present) | 
-| D9        | 6       | pink/black (if present) | 
-| D10       | LED+    | green/black | 
-| A0        | STOP    | blue | 
-| A1        | X1      | grey | 
-| A2        | X10     | grey/black | 
-| A3        | X100    | orange | 
-| NC        | /A<br>/B | violet<br>violet/black | 
+| Pro Micro | D15     |
+|:----------|:--------|
+| VCC       | 1       |
+| GND       | 8,9     |
+| D2        | 2       |
+| D3        | 3       |
+| D4        | 4       |
+| D5        | 12      |
+| D6        | 5       |
+| D7        | 13      |
+| D8        | 7       |
+| A0        | 15      |
+| A2        | 14      |
+| A3        | 6       |
+| Not Used  | 10/11   |
 
 Arduino Pro Micro to Duet 3 IO_0 connector or Duet 2 PanelDue connector wiring (3- or 4-core cable):
 
