@@ -18,29 +18,25 @@ against the below diagram.
    / 1  2  3  4  5  6  7  8 \
    --------------------------
 ```
-
 Because of the available pins this is slightly less capable than the Head of this fork. There is no way to control the LED, nor a way to differenciate between No Axis
 and the 6th Axis. The X1 multiplier setting is possible with the adjusted logic in this fork by only checking the X10/X100 pins.
 
-## Wiring
+## Pendant to Arduino Pro Micro connections
 
-Pendant to Arduino Pro Micro wiring:
-
-| Pro Micro | D15     |
-|:----------|:--------|
-| VCC       | 1       |
-| GND       | 8,9     |
-| D2        | 2       |
-| D3        | 3       |
-| D4        | 4       |
-| D5        | 12      |
-| D6        | 5       |
-| D7        | 13      |
-| D8        | 7       |
-| A0        | 15      |
-| A2        | 14      |
-| A3        | 6       |
-| Not Used  | 10/11   |
+| Function   | D15 Pin    | Pro Micro |
+|:-----------|:-----------|:----------|
+| 5v         | 1          | VCC       |
+| A+         | 2          | D10       |
+| B+         | 3          | D14       |
+| XIN        | 4          | D2        |
+| ZIN        | 5          | D4        |
+| X100       | 6          | D6        |
+| Axis5      | 7          | D9        |
+| GND/COM    | 8, 9, 16   | GND       |
+| YIN        | 12         | D3        |
+| Axis4      | 13         | D5        |
+| X10        | 14         | D7        |
+| EStop      | 15         | D8        |
 
 Arduino Pro Micro to Duet 3 IO_0 connector or Duet 2 PanelDue connector wiring (3- or 4-core cable):
 
